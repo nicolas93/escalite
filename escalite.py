@@ -5,8 +5,8 @@
 
 import argparse
 import binascii
-
-
+import math
+import os
 
 class Header:
 	"""Class containing the information about the sqlite header"""
@@ -16,11 +16,16 @@ class Header:
 		self.headerbytes = headerbytes
 
 	def get_ascii_string(self):
-		return self.headerbytes[0:15].decode(), self.headerbytes[0:15]
+		return self.headerbytes[0:16].decode(), self.headerbytes[0:16]
 
 	def get_page_size(self):
-		# TODO to real number
-		return self.headerbytes[16:17], self.headerbytes[16:17]
+		# 2^x, where x can be value between 9 and 15. if x = 0 -> 2^16
+		num = int.from_bytes(self.headerbytes[16:18], "big", signed=False)
+		if(num == 1):
+			num = 65536
+		elif(num < 512 or (math.log(512,2)%1 >0)):
+			print("Non-standard page size!")
+		return num, self.headerbytes[16:18]
 
 	def get_file_format_write_version(self):
 		return self.headerbytes[18], self.headerbytes[18]
@@ -32,33 +37,48 @@ class Header:
 		return self.headerbytes[20], self.headerbytes[20]
 
 	def get_change_count(self):
-		return self.headerbytes[24:27], self.headerbytes[24:27]
+		num = int.from_bytes(self.headerbytes[24:28], "big", signed=False)
+		return num, self.headerbytes[24:28]
 
 	def get_db_size(self):
-		return self.headerbytes[28:31], self.headerbytes[28,31]
+		# Why is the max-value 2**31-2 if there are 32 bytes used? this would indicate, that the size is signed, which doesnt make any sense
+		num = int.from_bytes(self.headerbytes[28:32], "big", signed=False)
+		if(num > 0x7ffffffe):
+			print("Non-standard database size!")
+		return num, self.headerbytes[28:32]
 
 	def get_first_free_page(self):
-		return self.headerbytes[32:35], self.headerbytes[32:35]
+		num = int.from_bytes(self.headerbytes[32:36], "big", signed=False)
+		return num, self.headerbytes[32:36]
 
 	def get_count_free_pages(self):
-		return self.headerbytes[36:39], self.headerbytes[36:39]
+		num = int.from_bytes(self.headerbytes[36:40], "big", signed=False)
+		return num, self.headerbytes[36:40]
 
 	def get_auto_vacuum_mode(self):
-		return self.headerbytes[52:55], self.headerbytes[52:55]
+		return self.headerbytes[52:56], self.headerbytes[52:56]
 
 	def get_encoding(self):
-		return self.headerbytes[56:59], self.headerbytes[56:59]
+		return self.headerbytes[56:60], self.headerbytes[56:60]
 
 	def get_vacuum_mode(self):
 		return self.headerbytes[64:68], self.headerbytes[64:68]
 
 	def get_version_number(self):
-		return self.headerbytes[96:99], self.headerbytes[96:99]
+		return self.headerbytes[96:100], self.headerbytes[96:100]
 
 	def info(self, proof):
-		s = ""
-		s += "ASCII String: %s\n" % self.get_ascii_string()[0]
-		s += "Version: %s\n" % binascii.hexlify(self.get_version_number()[1]).decode()
+		s = "HEADER Information:\n"
+		s += "\tSignatur: %s\n" % (self.get_ascii_string()[0])
+		s += "\tVersion: %s\n" % binascii.hexlify(self.get_version_number()[1]).decode()
+		s += "\tPage Size: %d\n" % self.get_page_size()[0]
+		s += "\tDB Size(Pages): %d\n" % self.get_db_size()[0]
+		s += "\tDB Size(Bytes): %d\n" % (self.get_page_size()[0] * self.get_db_size()[0])
+		s += "\tChange count: %d\n" % self.get_change_count()[0]
+		s += "\tFree Pages: %d\n" % self.get_count_free_pages()[0]
+		s += "\tFirst free page: %d\n" %self.get_first_free_page()[0]
+		s += "\tAuto vaccuum: %s\n" % binascii.hexlify(self.get_auto_vacuum_mode()[1]).decode()
+		s += "\tVaccuum mode: %s\n" % binascii.hexlify(self.get_vacuum_mode()[1]).decode()
 		return s
 
 
@@ -82,6 +102,7 @@ def main():
 	except OSError:
 		print("Try using a database that actually exists.")
 	else: 
+		print("Real file size: %d\n\n" % os.stat(args.database).st_size)
 		analyze(db, args.proof)
 
 
