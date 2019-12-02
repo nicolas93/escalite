@@ -7,6 +7,7 @@ import argparse
 import binascii
 import math
 import os
+import string
 
 class Header:
 	"""Class containing the information about the sqlite header"""
@@ -81,13 +82,137 @@ class Header:
 		s += "\tVaccuum mode: %s\n" % binascii.hexlify(self.get_vacuum_mode()[1]).decode()
 		return s
 
+class FreeTrunkPage:
+	"""Class containing Information of a freelist trunk page."""
+	pagebytes = b""
 
+	def __init__(self, pagebytes):
+		self.pagebytes = pagebytes
+
+	def get_next_trunk_page(self):
+		num = int.from_bytes(self.pagebytes[0:4], "big", signed=False)
+		return num, self.pagebytes[0:4]
+
+	def get_pointer_count(self):
+		num = int.from_bytes(self.pagebytes[4:8], "big", signed=False)
+		return num, self.pagebytes[4:8]
+
+	def get_pointer(self, n):
+		if(n > self.get_pointer_count()[0]):
+			print("There are supposed to be only %d pointer. Weird." % self.get_pointer_count()[0])
+		pointer = (4 * n) + 8
+		num = int.from_bytes(self.pagebytes[n:n+4], "big", signed=False)
+		return num, self.pagebytes[n:n+4]
+
+class FreeLeafPage:
+	"""Class containing a freelist leaf page. Should contain no information."""
+	pagebytes = b""
+
+	def __init__(self, pagebytes):
+		self.pagebytes = pagebytes
+
+	def check(self):
+		for b in self.pagebytes:
+			if(b != b"\x00"):
+				return "Freelist leaf page still contains information!"
+		return "Freelist leaf page is clear."
+
+	def print_page(self):
+		c = 0
+		hexstr = ""
+		asciistr = ""
+		for b in self.pagebytes:
+			hexstr += "%02x " % b
+			if(chr(b) in string.printable):
+				asciistr += chr(b)
+			else:
+				asciistr += "."
+			if(c % 16 == 0 and c != 0):
+				print("%08x : %s\t\t %s" %(c-16, hexstr, asciistr))
+				hexstr = ""
+				asciistr = ""
+			c += 1
+		if(c % 16 != 0):
+			hexstr += "   " * ( 16 - (c % 16))
+			asciistr += " " * (16 - (c % 16))
+			print("%08x : %s\t\t %s" %(c-16, hexstr, asciistr))
+
+class BTreePage:
+	"""Class containing a b tree page."""
+
+	pagebytes = b""
+	number = 0
+
+	def __init__(self, pagebytes, number):
+		self.pagebytes = pagebytes
+		self.number = number
+
+	def get_pagetype(self):
+		if(self.pagebytes[0] == 0x02):
+			return "Interior, Index", self.pagebytes[0]
+		elif(self.pagebytes[0] == 0x05):
+			return "Interior, Table", self.pagebytes[0]
+		elif(self.pagebytes[0] == 0x0a):
+			return "Leaf, Index", self.pagebytes[0]
+		elif(self.pagebytes[0] == 0x0d):
+			return "Leaf, Table", self.pagebytes[0]
+		else:
+			return "Unknown %02x" % self.pagebytes[0], self.pagebytes[0]
+
+	def get_first_free_cell(self):
+		num = int.from_bytes(self.pagebytes[1:3], "big", signed=False)
+		return num, self.pagebytes[1:3]
+
+	def get_cellcount(self):
+		num = int.from_bytes(self.pagebytes[3:5], "big", signed=False)
+		return num, self.pagebytes[3:5]
+
+	def get_datastart(self):
+		num = int.from_bytes(self.pagebytes[5:7], "big", signed=False)
+		return num, self.pagebytes[5:7]
+
+	def get_fragment_count(self):
+		num = int.from_bytes(self.pagebytes[7:8], "big", signed=False)
+		return num, self.pagebytes[7:8]
+
+	def get_last_child_pointer(self):
+		num = int.from_bytes(self.pagebytes[8:12], "big", signed=False)
+		return num, self.pagebytes[8:12]
+
+	def info(self):
+		s = "BTree Page Information:\n"
+		s += "\tPage Number: %d\n" % self.number
+		s += "\tPage type: %s\n" % (self.get_pagetype()[0])
+		s += "\tFirst free block: %d\n" % self.get_first_free_cell()[0]
+		s += "\tCell count: %d\n" % self.get_cellcount()[0]
+		s += "\tData Start: %d\n" % self.get_datastart()[0]
+		s += "\tFragment count: %d\n" % self.get_fragment_count()[0]
+		if(self.get_pagetype()[1] < 0xa):
+			s += "\tLast Child: %d\n" % self.get_last_child_pointer()[0]
+		return s
+
+	def check(self):
+		# TODO: is area between cell array and data really empty?
+		pass
+
+
+
+
+
+def analyzePage(db, header, pagenr, pagesize, proof=False):
+	pass
 
 
 def analyze(db, proof=False):
 	headerbytes = db.read(100)
 	header = Header(headerbytes)
 	print(header.info(proof))
+	p = db.read(header.get_page_size()[0] -100)
+	b = BTreePage(p, 1)
+	print(b.info())
+	p = db.read(header.get_page_size()[0])
+	b = BTreePage(p, 2)
+	print(b.info())
 
 
 
@@ -110,9 +235,3 @@ def main():
 
 if __name__ == "__main__":
 	main()
-
-
-
-
-
-
