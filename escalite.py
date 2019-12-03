@@ -118,12 +118,12 @@ class FreeLeafPage:
 		return "Freelist leaf page is clear."
 
 	def print_page(self):
-		c = 0
+		c = 1
 		hexstr = ""
 		asciistr = ""
 		for b in self.pagebytes:
 			hexstr += "%02x " % b
-			if(chr(b) in string.printable):
+			if(chr(b) in string.printable and chr(b) != "\r"):
 				asciistr += chr(b)
 			else:
 				asciistr += "."
@@ -197,7 +197,7 @@ class BTreePage:
 		# TODO: is area between cell array and data really empty?
 		pass
 
-	def get_data(self):
+	def read_data(self):
 		cell_array_pointer = 8
 		cell_array_end = (self.get_cellcount()[0] * 2) + 8
 		if(self.pagebytes[0] == 0x2 or self.pagebytes[0] == 0x5):
@@ -288,8 +288,35 @@ class BTreePage:
 
 		return 0
 
-	def get_removed_data(self):
-		pass
+	def read_removed_data(self):
+		freeblock = self.get_first_free_cell()[0] - self.negoffset
+		if(freeblock == 0):
+			print("\n\tNo free blocks to retrieve.")
+		while(freeblock != 0):
+			length = int.from_bytes(self.pagebytes[freeblock+2:freeblock+4], "big", signed=False)
+			print("\tFree Block: \n\t\tOffset: %06x\n\t\tLength: %06d\n\t\tData: " %(freeblock, length) + binascii.hexlify(self.pagebytes[freeblock:freeblock+length]).decode())
+			freeblock = int.from_bytes(self.pagebytes[freeblock:freeblock+2], "big", signed=False)
+
+
+	def print_page(self):
+		c = 1
+		hexstr = ""
+		asciistr = ""
+		for b in self.pagebytes:
+			hexstr += "%02x " % b
+			if(chr(b) in string.printable and chr(b) != "\r"):
+				asciistr += chr(b)
+			else:
+				asciistr += "."
+			if(c % 16 == 0 and c != 0):
+				print("%08x : %s\t\t %s" %(c-16, hexstr, asciistr))
+				hexstr = ""
+				asciistr = ""
+			c += 1
+		if(c % 16 != 0):
+			hexstr += "   " * ( 16 - (c % 16))
+			asciistr += " " * (16 - (c % 16))
+			print("%08x : %s\t\t %s" %(c-16, hexstr, asciistr))
 
 
 
@@ -306,11 +333,12 @@ def analyze(db, proof=False):
 	p = db.read(header.get_page_size()[0] -100)
 	b = BTreePage(p, 1, 100)
 	print(b.info())
-	b.get_data()
+	b.read_data()
 	p = db.read(header.get_page_size()[0])
 	b = BTreePage(p, 2)
 	print(b.info())
-	b.get_data()
+	b.read_data()
+	b.read_removed_data()
 
 
 
