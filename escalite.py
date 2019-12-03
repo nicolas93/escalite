@@ -142,10 +142,12 @@ class BTreePage:
 
 	pagebytes = b""
 	number = 0
+	negoffset = 0
 
-	def __init__(self, pagebytes, number):
+	def __init__(self, pagebytes, number, negoffset=0):
 		self.pagebytes = pagebytes
 		self.number = number
+		self.negoffset = negoffset
 
 	def get_pagetype(self):
 		if(self.pagebytes[0] == 0x02):
@@ -195,11 +197,102 @@ class BTreePage:
 		# TODO: is area between cell array and data really empty?
 		pass
 
+	def get_data(self):
+		cell_array_pointer = 8
+		cell_array_end = (self.get_cellcount()[0] * 2) + 8
+		if(self.pagebytes[0] == 0x2 or self.pagebytes[0] == 0x5):
+			cell_array_pointer += 4
+			cell_array_end += 4
+		while(cell_array_end > cell_array_pointer):
+			num = int.from_bytes(self.pagebytes[cell_array_pointer:cell_array_pointer+2], "big", signed=False)
+			print("\tCELL at offset: %06x" % num)
+			cell_array_pointer += 2
+			self.read_cell(num)
+			print("\n")
+
+	def varint2int(self, vi):
+		i = 0
+		x = 0
+		#print(vi[::-1])
+		for b in vi[::-1]:
+			#print("%d %d %d" % (i, x, b))
+			if x == 0:
+				i = b
+			else:
+				b = b ^ 0x80
+				i += (2**(x*7)) * b
+			x = x+1
+		return i
+
+
+	def read_cell(self, start, intent=2):
+		pointer = start - self.negoffset
+		record_length_bytes = b""
+		while(self.pagebytes[pointer] >= 0x80):
+			record_length_bytes += self.pagebytes[pointer:pointer+1]
+			pointer += 1
+		record_length_bytes += self.pagebytes[pointer:pointer+1]
+		pointer += 1
+		print("\t"*intent + "Cell length: %d" % self.varint2int(record_length_bytes))
+
+		id_bytes = b""
+		while(self.pagebytes[pointer] >= 0x80):
+			id_bytes += self.pagebytes[pointer:pointer+1]
+			pointer += 1
+		id_bytes += self.pagebytes[pointer:pointer+1]
+		pointer += 1
+		print("\t"*intent + "ID: %d" % self.varint2int(id_bytes))
+		
+		record_header_length_bytes = b""
+		while(self.pagebytes[pointer] >= 0x80):
+			record_header_length_bytes += self.pagebytes[pointer:pointer+1]
+			pointer += 1
+		record_header_length_bytes += self.pagebytes[pointer:pointer+1]
+		pointer += 1
+		print("\t"*intent + "Record header length: %d" % self.varint2int(record_header_length_bytes))
+		
+		types = []
+		i = 0 
+		while(i < self.varint2int(record_header_length_bytes)-len(record_header_length_bytes)):
+			type_bytes = b""
+			while(self.pagebytes[pointer] >= 0x80):
+				type_bytes += self.pagebytes[pointer:pointer+1]
+				pointer += 1
+			type_bytes += self.pagebytes[pointer:pointer+1]
+			pointer += 1
+			#print("\t"*intent + "Type: %s" % self.varint2int(type_bytes))
+			types.append(self.varint2int(type_bytes))
+			i += 1
+
+		for t in types:
+			if(t < 5):
+				print("\t" * intent + "Type: %d (int) | Value: %d" %(t, int.from_bytes(self.pagebytes[pointer:pointer+t], "big", signed=True)))
+				pointer += t
+			elif(t == 5):
+				print("\t" * intent + "Type: %d (int) | Value: %d" %(t, int.from_bytes(self.pagebytes[pointer:pointer+6], "big", signed=True)))
+				pointer += 6
+			elif(t == 6):
+				print("\t" * intent + "Type: %d (int) | Value: %d" %(t, int.from_bytes(self.pagebytes[pointer:pointer+8], "big", signed=True)))
+				pointer += 8
+			elif(t >= 12 and t%2==0):
+				length = int((t-12)/2)
+				print("\t"* intent +  "Type: BLOB    | Value: %s" % self.pagebytes[pointer:pointer+length])
+			elif(t >= 12 and t%2==1):
+				length = int((t-13)/2)
+				print("\t"* intent +  "Type: String  | Value: %s" % self.pagebytes[pointer:pointer+length].decode())
+			else:
+				print("unknown")
+
+		return 0
+
+	def get_removed_data(self):
+		pass
 
 
 
 
-def analyzePage(db, header, pagenr, pagesize, proof=False):
+
+def analyzePage(db, header, pagenr, pagesize, negoffset=0, proof=False):
 	pass
 
 
@@ -208,11 +301,13 @@ def analyze(db, proof=False):
 	header = Header(headerbytes)
 	print(header.info(proof))
 	p = db.read(header.get_page_size()[0] -100)
-	b = BTreePage(p, 1)
+	b = BTreePage(p, 1, 101)
 	print(b.info())
+	b.get_data()
 	p = db.read(header.get_page_size()[0])
 	b = BTreePage(p, 2)
 	print(b.info())
+	b.get_data()
 
 
 
