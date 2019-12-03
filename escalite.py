@@ -258,6 +258,7 @@ class BTreePage:
 			while(self.pagebytes[pointer] >= 0x80):
 				type_bytes += self.pagebytes[pointer:pointer+1]
 				pointer += 1
+				i += 1
 			type_bytes += self.pagebytes[pointer:pointer+1]
 			pointer += 1
 			#print("\t"*intent + "Type: %s" % self.varint2int(type_bytes))
@@ -277,9 +278,11 @@ class BTreePage:
 			elif(t >= 12 and t%2==0):
 				length = int((t-12)/2)
 				print("\t"* intent +  "Type: BLOB    | Value: %s" % self.pagebytes[pointer:pointer+length])
+				pointer += length
 			elif(t >= 12 and t%2==1):
 				length = int((t-13)/2)
 				print("\t"* intent +  "Type: String  | Value: %s" % self.pagebytes[pointer:pointer+length].decode())
+				pointer += length
 			else:
 				print("unknown")
 
@@ -301,7 +304,7 @@ def analyze(db, proof=False):
 	header = Header(headerbytes)
 	print(header.info(proof))
 	p = db.read(header.get_page_size()[0] -100)
-	b = BTreePage(p, 1, 101)
+	b = BTreePage(p, 1, 100)
 	print(b.info())
 	b.get_data()
 	p = db.read(header.get_page_size()[0])
@@ -316,7 +319,6 @@ def main():
 	parser.add_argument("database", help="SQLite database file to be examined")
 	parser.add_argument('--proof', action='store_true', help="show proofs when possible")
 	args = parser.parse_args()
-	print(args)
 	try:
 		db = open(args.database, "rb")
 	except OSError:
