@@ -327,14 +327,32 @@ class BTreePage:
 
 
 
-def analyzePage(db, header, pagenr, pagesize, negoffset=0, proof=False):
-	pass
+def analyzePage(header, page, pagenr, negoffset=0, proof=False):
+	print("\n")
+	print(page.info())
+	page.read_data()
 
 
-def interactive()
+def interactive(header, pages, proof=False):
 	exit = False
 	while not exit:
-		cmd = input("cmd", endline="")
+		cmd = input("cmd:")
+		cmdline = cmd.split(" ")
+		if(len(cmd) == 0):
+			print("'help' for help")
+			continue
+		if(cmdline[0] == "p"):
+			try:
+				analyzePage(header, pages[int(cmdline[1])-1], int(cmdline[1]), 0 if int(cmdline[1]) != 1 else 100)
+			except:
+				print("Error with this page")
+		elif(cmdline[0] == "exit"):
+			exit = True
+		elif(cmdline[0] == "help"):
+			print("Commands:")
+			print("p <n>\t\tanalyze page <n>")
+			print("exit\t\texit")
+
 
 def analyze(db, proof=False):
 	headerbytes = db.read(100)
@@ -344,8 +362,7 @@ def analyze(db, proof=False):
 	p = db.read(header.get_page_size()[0] -100)
 	b = BTreePage(p, 1, 100, offset)
 	offset = header.get_page_size()[0]
-	print(b.info())
-	b.read_data()
+	analyzePage(header, b, 1, 100)
 	pages = [b]
 	for i in range(2, header.get_db_size()[0]+1):
 		p = db.read(header.get_page_size()[0])
@@ -357,6 +374,7 @@ def analyze(db, proof=False):
 		else:
 			print(b.shortinfo())
 		pages.append(b)
+	interactive(header, pages)
 
 
 
