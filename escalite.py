@@ -101,8 +101,17 @@ class FreeTrunkPage:
 		if(n > self.get_pointer_count()[0]):
 			print("There are supposed to be only %d pointer. Weird." % self.get_pointer_count()[0])
 		pointer = (4 * n) + 8
-		num = int.from_bytes(self.pagebytes[n:n+4], "big", signed=False)
-		return num, self.pagebytes[n:n+4]
+		num = int.from_bytes(self.pagebytes[pointer:pointer+4], "big", signed=False)
+		return num, self.pagebytes[pointer:pointer+4]
+
+	def info(self):
+		s = "FreeList Trunk Page Information:\n"
+		s += "\tNext trunk page: %d\n" % self.get_next_trunk_page()[0]
+		s += "\t#Leaves: %d\n" % self.get_pointer_count()[0]
+		s += "\tLeaves:\n"
+		for i in range(0, self.get_pointer_count()[0]):
+			s += "\t\t%d\n" % self.get_pointer(i)[0]
+		return s
 
 class FreeLeafPage:
 	"""Class containing a freelist leaf page. Should contain no information."""
@@ -346,11 +355,19 @@ def interactive(header, pages, proof=False):
 				analyzePage(header, pages[int(cmdline[1])-1], int(cmdline[1]), 0 if int(cmdline[1]) != 1 else 100)
 			except:
 				print("Error with this page")
+		if(cmdline[0] == "f"):
+			try:
+				f = FreeTrunkPage(pages[int(cmdline[1])-1].pagebytes)
+				print(f.info())
+			except Exception as e:
+				print("Error with this page")
+				print(e)
 		elif(cmdline[0] == "exit"):
 			exit = True
 		elif(cmdline[0] == "help"):
 			print("Commands:")
-			print("p <n>\t\tanalyze page <n>")
+			print("p <n>\t\tanalyze page <n> (As a normal BTree page)")
+			print("f <n>\t\tanalyze page <n> (As a freelist trunk page)")
 			print("exit\t\texit")
 
 
@@ -367,12 +384,12 @@ def analyze(db, proof=False):
 	for i in range(2, header.get_db_size()[0]+1):
 		p = db.read(header.get_page_size()[0])
 		b = BTreePage(p, i, offset)
-		offset += header.get_page_size()[0]
 		if(b.get_pagetype()[1] == 0x00):
-			b = FreeLeafPage(b.pagebytes)
-			print("Free Page!")
+			f = FreeTrunkPage(b.pagebytes)
+			print("Potential free-page, Offset: %08x, Number: %d, Next Trunk: %d, #Leafes:%d" % (offset, i, f.get_next_trunk_page()[0], f.get_pointer_count()[0])) 
 		else:
 			print(b.shortinfo())
+		offset += header.get_page_size()[0]
 		pages.append(b)
 	interactive(header, pages)
 
