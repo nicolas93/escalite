@@ -332,8 +332,9 @@ def analyzePage(db, header, pagenr, pagesize, negoffset=0, proof=False):
 
 
 def interactive()
-	pass
-
+	exit = False
+	while not exit:
+		cmd = input("cmd", endline="")
 
 def analyze(db, proof=False):
 	headerbytes = db.read(100)
