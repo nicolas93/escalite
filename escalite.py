@@ -143,11 +143,13 @@ class BTreePage:
 	pagebytes = b""
 	number = 0
 	negoffset = 0
+	totaloffset = 0
 
-	def __init__(self, pagebytes, number, negoffset=0):
+	def __init__(self, pagebytes, number, totaloffset, negoffset=0):
 		self.pagebytes = pagebytes
 		self.number = number
 		self.negoffset = negoffset
+		self.totaloffset = totaloffset
 
 	def get_pagetype(self):
 		if(self.pagebytes[0] == 0x02):
@@ -318,6 +320,9 @@ class BTreePage:
 			asciistr += " " * (16 - (c % 16))
 			print("%08x : %s\t\t %s" %(c-16, hexstr, asciistr))
 
+	def shortinfo(self):
+		s = "Page Nr.: %d, Offset: %06x, Type: %s, Cells: %d, First free block: %04x" %(self.number, self.totaloffset,self.get_pagetype()[0], self.get_cellcount()[0], self.get_first_free_cell()[0])
+		return s
 
 
 
@@ -326,19 +331,31 @@ def analyzePage(db, header, pagenr, pagesize, negoffset=0, proof=False):
 	pass
 
 
+def interactive()
+	pass
+
+
 def analyze(db, proof=False):
 	headerbytes = db.read(100)
+	offset = 100
 	header = Header(headerbytes)
 	print(header.info(proof))
 	p = db.read(header.get_page_size()[0] -100)
-	b = BTreePage(p, 1, 100)
+	b = BTreePage(p, 1, 100, offset)
+	offset = header.get_page_size()[0]
 	print(b.info())
 	b.read_data()
-	p = db.read(header.get_page_size()[0])
-	b = BTreePage(p, 2)
-	print(b.info())
-	b.read_data()
-	b.read_removed_data()
+	pages = [b]
+	for i in range(2, header.get_db_size()[0]+1):
+		p = db.read(header.get_page_size()[0])
+		b = BTreePage(p, i, offset)
+		offset += header.get_page_size()[0]
+		if(b.get_pagetype()[1] == 0x00):
+			b = FreeLeafPage(b.pagebytes)
+			print("Free Page!")
+		else:
+			print(b.shortinfo())
+		pages.append(b)
 
 
 
