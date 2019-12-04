@@ -395,6 +395,7 @@ def analyze(db, proof=False):
 
 
 
+
 def main():
 	parser = argparse.ArgumentParser(description='Find main colors in a given image.')
 	parser.add_argument("database", help="SQLite database file to be examined")
