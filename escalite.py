@@ -339,7 +339,6 @@ class BTreePage:
 def analyzePage(header, page, pagenr, negoffset=0, proof=False):
 	print("\n")
 	print(page.info())
-	page.read_data()
 
 
 def interactive(header, pages, proof=False):
@@ -355,6 +354,16 @@ def interactive(header, pages, proof=False):
 				analyzePage(header, pages[int(cmdline[1])-1], int(cmdline[1]), 0 if int(cmdline[1]) != 1 else 100)
 			except:
 				print("Error with this page")
+		if(cmdline[0] == "pr"):
+			try:
+				pages[int(cmdline[1])-1].read_removed_data()
+			except:
+				print("Error with this page")
+		if(cmdline[0] == "pc"):
+			try:
+				pages[int(cmdline[1])-1].read_data()
+			except:
+				print("Error with this page")
 		if(cmdline[0] == "f"):
 			try:
 				f = FreeTrunkPage(pages[int(cmdline[1])-1].pagebytes)
@@ -367,6 +376,8 @@ def interactive(header, pages, proof=False):
 		elif(cmdline[0] == "help"):
 			print("Commands:")
 			print("p <n>\t\tanalyze page <n> (As a normal BTree page)")
+			print("pr <n>\t\tSearch removed data on page <n>")
+			print("pc <n>\t\tPrint celldata on page <n>")
 			print("f <n>\t\tanalyze page <n> (As a freelist trunk page)")
 			print("exit\t\texit")
 
