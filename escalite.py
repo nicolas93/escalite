@@ -242,7 +242,7 @@ class BTreePage:
         return s
 
     def check(self):
-        # TODO: is area between cell array and data really empty?
+        # is area between cell array and data really empty?
         last_cell_pointer = self.get_cellcount()[0] * 4 + 12 + (0 if(self.pagebytes[0] != 0x02 and self.pagebytes[0] != 0x05) else 4) 
         data_start = self.get_datastart()[0]
         for b in self.pagebytes[last_cell_pointer:data_start-self.negoffset]:
