@@ -211,6 +211,24 @@ class BTreePage:
         num = int.from_bytes(self.pagebytes[8:12], "big", signed=False)
         return num, self.pagebytes[8:12]
 
+    def get_tree_string(self):
+        if(self.pagebytes[0] == 0x02 or self.pagebytes[0] == 0x05):
+            cell_array_pointer = 12
+            cell_array_end = (self.get_cellcount()[0] * 2) + 8
+            if(self.pagebytes[0] == 0x2 or self.pagebytes[0] == 0x5):
+                cell_array_pointer += 4
+                cell_array_end += 4
+            while(cell_array_end > cell_array_pointer):
+                num = int.from_bytes(
+                    self.pagebytes[cell_array_pointer:cell_array_pointer+2], "big", signed=False)
+                print("\tCELL at offset: %06x" % num)
+                cell_array_pointer += 2
+                child = int.from_bytes(self.pagebytes[num-self.negoffset:num-self.negoffset+4], "big", signed=False)
+                print(child)
+                print("\n")
+            print(self.get_last_child_pointer()[0])
+        return ""
+
     def info(self):
         s = "BTree Page Information:\n"
         s += "\tPage Number: %d\n" % self.number
@@ -403,6 +421,12 @@ def interactive(header, pages, proof=False):
             except Exception as e:
                 print(e)
                 print("Error with the header")
+        if(cmdline[0] == "b"):
+            try:
+                pages[0].get_tree_string()
+            except Exception as e:
+                print(e)
+                print("Error with the header")
         if(cmdline[0] == "p"):
             try:
                 analyzePage(header, pages[int(
@@ -432,7 +456,7 @@ def interactive(header, pages, proof=False):
             except Exception as e:
                 print("Error with the freelist")
                 print(e)
-        elif(cmdline[0] == "exit"):
+        elif(cmdline[0] == "exit" or cmdline[0] == "q"):
             exit = True
         elif(cmdline[0] == "help"):
             print("Commands:")
@@ -442,7 +466,7 @@ def interactive(header, pages, proof=False):
             print("pc <n>\t\tPrint celldata on page <n>")
             print("f <n>\t\tanalyze page <n> (As a freelist trunk page)")
             print("fl <n>\t\tShow freelist graph")
-            print("exit\t\texit")
+            print("exit|q\t\texit")
 
 
 def analyze(db, proof=False):
