@@ -243,7 +243,16 @@ class BTreePage:
 
     def check(self):
         # TODO: is area between cell array and data really empty?
-        pass
+        last_cell_pointer = self.get_cellcount()[0] * 4 + 12 + (0 if(self.pagebytes[0] != 0x02 and self.pagebytes[0] != 0x05) else 4) 
+        data_start = self.get_datastart()[0]
+        for b in self.pagebytes[last_cell_pointer:data_start-self.negoffset]:
+            if b != 0:
+                print("Contains undeleted data!!")
+                self.print_page()
+                return
+        print("Page OK.")
+
+
 
     def read_data(self):
         cell_array_pointer = 8
@@ -361,7 +370,7 @@ class BTreePage:
         asciistr = ""
         for b in self.pagebytes:
             hexstr += "%02x " % b
-            if(chr(b) in string.printable and chr(b) != "\r"):
+            if(chr(b) in string.printable and chr(b) != "\r" and chr(b) != "\n"):
                 asciistr += chr(b)
             else:
                 asciistr += "."
@@ -384,6 +393,7 @@ class BTreePage:
 def analyzePage(header, page, pagenr, negoffset=0, proof=False):
     print("\n")
     print(page.info())
+    page.check()
 
 
 def showFreeList(header, pages):
@@ -431,17 +441,20 @@ def interactive(header, pages, proof=False):
             try:
                 analyzePage(header, pages[int(
                     cmdline[1])-1], int(cmdline[1]), 0 if int(cmdline[1]) != 1 else 100)
-            except:
+            except Exception as e:
+                print(e)
                 print("Error with this page")
         if(cmdline[0] == "pr"):
             try:
                 pages[int(cmdline[1])-1].read_removed_data()
-            except:
+            except Exception as e:
+                print(e)
                 print("Error with this page")
         if(cmdline[0] == "pc"):
             try:
                 pages[int(cmdline[1])-1].read_data()
-            except:
+            except Exception as e:
+                print(e)
                 print("Error with this page")
         if(cmdline[0] == "f"):
             try:
