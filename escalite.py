@@ -7,6 +7,7 @@ import binascii
 import math
 import os
 import string
+from graphviz import Digraph, nohtml
 
 
 class Header:
@@ -110,6 +111,15 @@ class FreeTrunkPage:
         num = int.from_bytes(
             self.pagebytes[pointer:pointer+4], "big", signed=False)
         return num, self.pagebytes[pointer:pointer+4]
+
+    def get_cells(self):
+        cells = []
+        for i in range(0, self.get_pointer_count()[0]):
+            cells.append("%d" % self.get_pointer(i)[0])
+        s = " | ".join(cells)
+        print(s)
+        return s
+
 
     def info(self):
         s = "FreeList Trunk Page Information:\n"
@@ -358,6 +368,27 @@ def analyzePage(header, page, pagenr, negoffset=0, proof=False):
     print(page.info())
 
 
+def showFreeList(header, pages):
+    g = Digraph('g', filename='freelist.gv',
+            node_attr={'shape': 'record', 'height': '.1'})
+    f = header.get_first_free_page()[0]
+    if(f != 0 and len(FreeTrunkPage(pages[f-1].pagebytes).get_cells()) != 0):
+        g.node('node%d' %f, nohtml('<f%d> %d | %s' % (f,f, FreeTrunkPage(pages[f-1].pagebytes).get_cells())))
+    else:
+        g.node('node%d' %f, nohtml('<f%d> %d' % (f,f)))
+    while(f != 0):
+        print(f)
+        nf = FreeTrunkPage(pages[f-1].pagebytes).get_next_trunk_page()[0]
+        if(nf != 0):
+            g.node('node%d' %nf, nohtml('<f%d> %d | %s' % (nf,nf, FreeTrunkPage(pages[nf-1].pagebytes).get_cells())))
+        else:
+            g.node('node%d' %nf, nohtml('<f%d> %d' % (nf,nf)))
+        g.edge('node%d:f%d'% (f,f), 'node%d:f%d'% (nf,nf))
+        f = nf
+    g.view()
+
+
+
 def interactive(header, pages, proof=False):
     exit = False
     while not exit:
@@ -366,6 +397,12 @@ def interactive(header, pages, proof=False):
         if(len(cmd) == 0):
             print("'help' for help")
             continue
+        if(cmdline[0] == "h"):
+            try:
+                print(header.info(proof))
+            except Exception as e:
+                print(e)
+                print("Error with the header")
         if(cmdline[0] == "p"):
             try:
                 analyzePage(header, pages[int(
@@ -389,14 +426,22 @@ def interactive(header, pages, proof=False):
             except Exception as e:
                 print("Error with this page")
                 print(e)
+        if(cmdline[0] == "fl"):
+            try:
+                showFreeList(header, pages)
+            except Exception as e:
+                print("Error with the freelist")
+                print(e)
         elif(cmdline[0] == "exit"):
             exit = True
         elif(cmdline[0] == "help"):
             print("Commands:")
+            print("h\t\tShow header info")
             print("p <n>\t\tanalyze page <n> (As a normal BTree page)")
             print("pr <n>\t\tSearch removed data on page <n>")
             print("pc <n>\t\tPrint celldata on page <n>")
             print("f <n>\t\tanalyze page <n> (As a freelist trunk page)")
+            print("fl <n>\t\tShow freelist graph")
             print("exit\t\texit")
 
 
