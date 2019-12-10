@@ -9,8 +9,9 @@ SQLite forensic tool
 
 ### Interactive
 
-| help   | Show available commands                      |
+| cmd   | Description                      |
 |--------|----------------------------------------------|
+| help   | Show available commands                      |
 | h      | Show DB header information                   |
 | p n  | Show information about the n-th page         |
 | pc n | Show all cells on page n                     |
