@@ -401,7 +401,7 @@ def showFreeList(header, pages):
             node_attr={'shape': 'record', 'height': '.1'})
     f = header.get_first_free_page()[0]
     if(f != 0 and len(FreeTrunkPage(pages[f-1].pagebytes).get_cells()) != 0):
-        g.node('node%d' %f, nohtml('<f%d> %d | %s' % (f,f, FreeTrunkPage(pages[f-1].pagebytes).get_cells())))
+        g.node('node%d' %f, nohtml('{<f%d> %d | Trunkpage } | %s' % (f,f, FreeTrunkPage(pages[f-1].pagebytes).get_cells())))
     else:
         g.node('node%d' %f, nohtml('<f%d> %d' % (f,f)))
     while(f != 0):
