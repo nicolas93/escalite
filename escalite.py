@@ -10,6 +10,12 @@ import string
 from graphviz import Digraph, nohtml
 
 
+colorred = "\x1B[31;40m"
+colorgreen = "\x1B[32;40m"
+coloryellow = "\x1B[33;40m"
+colorblue = "\x1B[34;40m"
+coloroff = "\x1B[0m"
+
 class Header:
     """Class containing the information about the sqlite header"""
     headerbytes = b""
@@ -141,16 +147,21 @@ class FreeLeafPage:
     def check(self):
         for b in self.pagebytes:
             if(b != b"\x00"):
-                return "Freelist leaf page still contains information!"
-        return "Freelist leaf page is clear."
+                return "Freelist leaf page still contains information!", False
+        return "Freelist leaf page is clear.", True
 
     def print_page(self):
         c = 1
         hexstr = ""
         asciistr = ""
+        color = ""
         for b in self.pagebytes:
-            hexstr += "%02x " % b
-            if(chr(b) in string.printable and chr(b) != "\r"):
+            if(b != 0):
+                color = colorred
+            else:
+                color = ""
+            hexstr += "%s%02x %s" % (color,b,coloroff)
+            if(chr(b) in string.printable and b >= 0x20):
                 asciistr += chr(b)
             else:
                 asciistr += "."
@@ -368,9 +379,16 @@ class BTreePage:
         c = 1
         hexstr = ""
         asciistr = ""
-        for b in self.pagebytes:
-            hexstr += "%02x " % b
-            if(chr(b) in string.printable and chr(b) != "\r" and chr(b) != "\n"):
+        color = ""
+        for i,b in enumerate(self.pagebytes):
+            if((i < 8) or (i < 12 and (self.get_pagetype()[1] == 0x2 or self.get_pagetype()[1] == 0x5))):
+                color = coloryellow
+            elif(i >= self.get_datastart()[0] - self.negoffset):
+                color = colorred
+            else:
+                color = ""
+            hexstr += "%s%02x %s" % (color,b,coloroff)
+            if(chr(b) in string.printable and b >= 0x20):
                 asciistr += chr(b)
             else:
                 asciistr += "."
@@ -456,10 +474,24 @@ def interactive(header, pages, proof=False):
             except Exception as e:
                 print(e)
                 print("Error with this page")
+        if(cmdline[0] == "pd"):
+            try:
+                pages[int(cmdline[1])-1].print_page()
+            except Exception as e:
+                print(e)
+                print("Error with this page")
         if(cmdline[0] == "f"):
             try:
                 f = FreeTrunkPage(pages[int(cmdline[1])-1].pagebytes)
                 print(f.info())
+            except Exception as e:
+                print("Error with this page")
+                print(e)
+        if(cmdline[0] == "fcl"):
+            try:
+                f = FreeLeafPage(pages[int(cmdline[1])-1].pagebytes)
+                if not (f.check()[1]):
+                    f.print_page()
             except Exception as e:
                 print("Error with this page")
                 print(e)
@@ -477,7 +509,9 @@ def interactive(header, pages, proof=False):
             print("p <n>\t\tanalyze page <n> (As a normal BTree page)")
             print("pr <n>\t\tSearch removed data on page <n>")
             print("pc <n>\t\tPrint celldata on page <n>")
+            print("pd <n>\t\tPrint hexdump of page <n>")
             print("f <n>\t\tanalyze page <n> (As a freelist trunk page)")
+            print("fcl <n>\t\tCheck if freelist-leaf page <n> is empty")
             print("fl <n>\t\tShow freelist graph")
             print("exit|q\t\texit")
 
