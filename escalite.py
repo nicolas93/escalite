@@ -376,7 +376,6 @@ class BTreePage:
                 self.pagebytes[freeblock:freeblock+2], "big", signed=False)
 
     def print_page(self):
-        c = 1
         hexstr = ""
         asciistr = ""
         color = ""
@@ -392,15 +391,15 @@ class BTreePage:
                 asciistr += chr(b)
             else:
                 asciistr += "."
-            if(c % 16 == 0 and c != 0):
-                print("%08x : %s\t\t %s" % (c-16, hexstr, asciistr))
+            if(i % 16 == 15):
+                print("%08x : %s\t\t %s" % (i-15+ self.negoffset, hexstr, asciistr))
                 hexstr = ""
                 asciistr = ""
-            c += 1
-        if(c % 16 != 0):
-            hexstr += "   " * (16 - (c % 16))
-            asciistr += " " * (16 - (c % 16))
-            print("%08x : %s\t\t %s" % (c-16, hexstr, asciistr))
+        else:
+            if(i % 16 != 15):
+                hexstr += "   " * (16 - (i % 16))
+                asciistr += " " * (16 - (i % 16))
+                print("%08x : %s\t\t %s" % (i-15+ self.negoffset, hexstr, asciistr))
 
     def shortinfo(self):
         s = "Page Nr.: %d, Offset: %06x, Type: %s, Cells: %d, First free block: %04x" % (
@@ -419,14 +418,20 @@ def showFreeList(header, pages):
             node_attr={'shape': 'record', 'height': '.1'})
     f = header.get_first_free_page()[0]
     if(f != 0 and len(FreeTrunkPage(pages[f-1].pagebytes).get_cells()) != 0):
-        g.node('node%d' %f, nohtml('{<f%d> %d | Trunkpage } | %s' % (f,f, FreeTrunkPage(pages[f-1].pagebytes).get_cells())))
+        if(len(FreeTrunkPage(pages[f-1].pagebytes).get_cells()) > 30):
+            g.node('node%d' %f, nohtml('{<f%d> %d | Trunkpage } | %d Leaves' % (f,f, len(FreeTrunkPage(pages[f-1].pagebytes).get_cells()))))
+        else:
+            g.node('node%d' %f, nohtml('{<f%d> %d | Trunkpage } | %s' % (f,f, FreeTrunkPage(pages[f-1].pagebytes).get_cells())))
     else:
         g.node('node%d' %f, nohtml('<f%d> %d' % (f,f)))
     while(f != 0):
         print(f)
         nf = FreeTrunkPage(pages[f-1].pagebytes).get_next_trunk_page()[0]
         if(nf != 0):
-            g.node('node%d' %nf, nohtml('<f%d> %d | %s' % (nf,nf, FreeTrunkPage(pages[nf-1].pagebytes).get_cells())))
+            if(len(FreeTrunkPage(pages[f-1].pagebytes).get_cells()) > 30):
+                g.node('node%d' %nf, nohtml('{<f%d> %d | Trunkpage } | %d Leaves' % (nf,nf, len(FreeTrunkPage(pages[nf-1].pagebytes).get_cells()))))
+            else:
+                g.node('node%d' %nf, nohtml('{<f%d> %d | Trunkpage } | %s' % (nf,nf, FreeTrunkPage(pages[nf-1].pagebytes).get_cells())))
         else:
             g.node('node%d' %nf, nohtml('<f%d> %d' % (nf,nf)))
         g.edge('node%d:f%d'% (f,f), 'node%d:f%d'% (nf,nf))
@@ -451,7 +456,7 @@ def interactive(header, pages, proof=False):
                 print("Error with the header")
         if(cmdline[0] == "b"):
             try:
-                pages[0].get_tree_string()
+                pages[1].get_tree_string()
             except Exception as e:
                 print(e)
                 print("Error with the header")
