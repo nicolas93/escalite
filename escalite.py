@@ -7,7 +7,6 @@ import binascii
 import math
 import os
 import string
-from graphviz import Digraph, nohtml
 
 
 colorred = "\x1B[31;40m"
@@ -76,7 +75,7 @@ class Header:
         return self.headerbytes[96:100], self.headerbytes[96:100]
 
     def info(self, proof):
-        s = "HEADER Information:\n"
+        s = coloryellow + "HEADER Information:\n"
         s += "\tSignatur: %s\n" % (self.get_ascii_string()[0])
         s += "\tVersion: %s\n" % binascii.hexlify(
             self.get_version_number()[1]).decode()
@@ -91,6 +90,7 @@ class Header:
             self.get_auto_vacuum_mode()[1]).decode()
         s += "\tVaccuum mode: %s\n" % binascii.hexlify(
             self.get_vacuum_mode()[1]).decode()
+        s += coloroff
         return s
 
 
@@ -241,7 +241,7 @@ class BTreePage:
         return ""
 
     def info(self):
-        s = "BTree Page Information:\n"
+        s = colorblue +"BTree Page Information:\n"
         s += "\tPage Number: %d\n" % self.number
         s += "\tPage type: %s\n" % (self.get_pagetype()[0])
         s += "\tFirst free block: %d\n" % self.get_first_free_cell()[0]
@@ -250,6 +250,7 @@ class BTreePage:
         s += "\tFragment count: %d\n" % self.get_fragment_count()[0]
         if(self.get_pagetype()[1] < 0xa):
             s += "\tLast Child: %d\n" % self.get_last_child_pointer()[0]
+        s += coloroff
         return s
 
     def check(self):
@@ -502,6 +503,11 @@ def interactive(header, pages, proof=False):
                 print(e)
         if(cmdline[0] == "fl"):
             try:
+                try:
+                    from graphviz import Digraph, nohtml
+                except Exception as ie:
+                    print("Cannot import graphviz")
+                    print(ie)
                 showFreeList(header, pages)
             except Exception as e:
                 print("Error with the freelist")
