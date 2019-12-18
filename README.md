@@ -22,6 +22,10 @@ SQLite forensic tool
 | ```fl```      | Show freelistgraph                           |
 | ```exit, q``` | Close program                                |
 
+### Examples graphs
+
+![Large empty database](freelist_example.png "Freelist graph; Large empty database")
+
 
 ## Features planned
 
