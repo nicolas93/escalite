@@ -15,6 +15,9 @@ coloryellow = "\x1B[33;40m"
 colorblue = "\x1B[34;40m"
 coloroff = "\x1B[0m"
 
+Digraph = None
+nohtml = None
+
 class Header:
     """Class containing the information about the sqlite header"""
     headerbytes = b""
@@ -503,11 +506,8 @@ def interactive(header, pages, proof=False):
                 print(e)
         if(cmdline[0] == "fl"):
             try:
-                try:
-                    from graphviz import Digraph, nohtml
-                except Exception as ie:
-                    print("Cannot import graphviz")
-                    print(ie)
+                global Digraph, nohtml
+                from graphviz import Digraph, nohtml
                 showFreeList(header, pages)
             except Exception as e:
                 print("Error with the freelist")
