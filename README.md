@@ -13,6 +13,7 @@ SQLite forensic tool
 |---------------|----------------------------------------------|
 | ```help```    | Show available commands                      |
 | ```h```       | Show DB header information                   |
+| ```o```       | Show overview of all pages                   |
 | ```p <n>```   | Show information about the n-th page         |
 | ```pc <n>```  | Show all cells on page n                     |
 | ```pr <n>```  | Try to retrieve deleted data on page n       |

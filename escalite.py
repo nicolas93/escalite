@@ -7,6 +7,7 @@ import binascii
 import math
 import os
 import string
+import pydoc
 
 
 colorred = "\x1B[31;40m"
@@ -444,7 +445,7 @@ def showFreeList(header, pages):
 
 
 
-def interactive(header, pages, proof=False):
+def interactive(header, pages, overview, proof=False):
     exit = False
     while not exit:
         cmd = input("cmd:")
@@ -458,6 +459,12 @@ def interactive(header, pages, proof=False):
             except Exception as e:
                 print(e)
                 print("Error with the header")
+        if(cmdline[0] == "o"):
+            try:
+                pydoc.pager(colorblue+"Showing overview over pages:\n"+coloroff+overview)
+            except Exception as e:
+                print(e)
+                print("Error with the overview")
         if(cmdline[0] == "b"):
             try:
                 pages[1].get_tree_string()
@@ -517,6 +524,7 @@ def interactive(header, pages, proof=False):
         elif(cmdline[0] == "help"):
             print("Commands:")
             print("h\t\tShow header info")
+            print("o\t\tShow overview of all pages")
             print("p <n>\t\tanalyze page <n> (As a normal BTree page)")
             print("pr <n>\t\tSearch removed data on page <n>")
             print("pc <n>\t\tPrint celldata on page <n>")
@@ -537,18 +545,22 @@ def analyze(db, proof=False):
     offset = header.get_page_size()[0]
     analyzePage(header, b, 1, 100)
     pages = [b]
+    overview = b.shortinfo() + "\n"
     for i in range(2, header.get_db_size()[0]+1):
         p = db.read(header.get_page_size()[0])
         b = BTreePage(p, i, offset)
         if(b.get_pagetype()[1] == 0x00):
             f = FreeTrunkPage(b.pagebytes)
-            print("Potential free-page, Offset: %08x, Number: %d, Next Trunk: %d, #Leafes:%d" %
-                  (offset, i, f.get_next_trunk_page()[0], f.get_pointer_count()[0]))
+            overview += "Potential free-page, Offset: %08x, Number: %d, Next Trunk: %d, #Leafes:%d\n" % (offset, i, f.get_next_trunk_page()[0], f.get_pointer_count()[0])
         else:
-            print(b.shortinfo())
+            overview += b.shortinfo() + "\n"
         offset += header.get_page_size()[0]
         pages.append(b)
-    interactive(header, pages)
+    if(header.get_db_size()[0] > 30):
+        pydoc.pager(colorblue+"Showing overview over pages:\n"+coloroff+overview)
+    else:
+        print(overview)
+    interactive(header, pages, overview)
 
 
 def main():
