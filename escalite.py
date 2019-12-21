@@ -136,8 +136,20 @@ class FreeTrunkPage:
         s += "\tNext trunk page: %d\n" % self.get_next_trunk_page()[0]
         s += "\t#Leaves: %d\n" % self.get_pointer_count()[0]
         s += "\tLeaves:\n"
+        if(self.get_pointer_count()[0] > 2000 or (self.get_pointer_count()[0] >= 3 and self.get_pointer(0)[0] == 0 and self.get_pointer(1)[0] == 0 and self.get_pointer(2)[0])):
+            s += colorred + "\tThere are to many leaves or the first three leaves are null. This does not seem like a freelist trunk page.\n"
+            s += "\tUse pd <n> to investigate further." + coloroff
+            return s
+        values = [""] * 8
         for i in range(0, self.get_pointer_count()[0]):
-            s += "\t\t%d\n" % self.get_pointer(i)[0]
+            values[i%8] = "%d" % self.get_pointer(i)[0]
+            if(i %8 == 7 and i > 0):
+                s += "\t\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (values[0],values[1],values[2],values[3],values[4],values[5],values[6],values[7])
+                values = [""] * 8
+        else:
+            i += 1
+            if(i %8 != 0 and i > 0):
+                s += "\t\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (values[0],values[1],values[2],values[3],values[4],values[5],values[6],values[7])
         return s
 
 
@@ -461,7 +473,7 @@ def interactive(header, pages, overview, proof=False):
                 print("Error with the header")
         if(cmdline[0] == "o"):
             try:
-                pydoc.pager(colorblue+"Showing overview over pages:\n"+coloroff+overview)
+                pydoc.pager(colorblue+"Showing overview of pages:\n"+coloroff+overview)
             except Exception as e:
                 print(e)
                 print("Error with the overview")
@@ -543,7 +555,6 @@ def analyze(db, proof=False):
     p = db.read(header.get_page_size()[0] - 100)
     b = BTreePage(p, 1, 100, offset)
     offset = header.get_page_size()[0]
-    analyzePage(header, b, 1, 100)
     pages = [b]
     overview = b.shortinfo() + "\n"
     for i in range(2, header.get_db_size()[0]+1):
@@ -557,7 +568,7 @@ def analyze(db, proof=False):
         offset += header.get_page_size()[0]
         pages.append(b)
     if(header.get_db_size()[0] > 30):
-        pydoc.pager(colorblue+"Showing overview over pages:\n"+coloroff+overview)
+        pydoc.pager(colorblue+"Showing overview of pages:\n"+coloroff+overview)
     else:
         print(overview)
     interactive(header, pages, overview)
