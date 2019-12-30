@@ -19,6 +19,7 @@ coloroff = "\x1B[0m"
 Digraph = None
 nohtml = None
 
+
 class Header:
     """Class containing the information about the sqlite header"""
     headerbytes = b""
@@ -130,7 +131,6 @@ class FreeTrunkPage:
         print(s)
         return s
 
-
     def info(self):
         s = "FreeList Trunk Page Information:\n"
         s += "\tNext trunk page: %d\n" % self.get_next_trunk_page()[0]
@@ -142,14 +142,16 @@ class FreeTrunkPage:
             return s
         values = [""] * 8
         for i in range(0, self.get_pointer_count()[0]):
-            values[i%8] = "%d" % self.get_pointer(i)[0]
-            if(i %8 == 7 and i > 0):
-                s += "\t\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (values[0],values[1],values[2],values[3],values[4],values[5],values[6],values[7])
+            values[i % 8] = "%d" % self.get_pointer(i)[0]
+            if(i % 8 == 7 and i > 0):
+                s += "\t\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
+                    values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7])
                 values = [""] * 8
         else:
             i += 1
-            if(i %8 != 0 and i > 0):
-                s += "\t\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (values[0],values[1],values[2],values[3],values[4],values[5],values[6],values[7])
+            if(i % 8 != 0 and i > 0):
+                s += "\t\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\n" % (
+                    values[0], values[1], values[2], values[3], values[4], values[5], values[6], values[7])
         return s
 
 
@@ -176,7 +178,7 @@ class FreeLeafPage:
                 color = colorred
             else:
                 color = ""
-            hexstr += "%s%02x %s" % (color,b,coloroff)
+            hexstr += "%s%02x %s" % (color, b, coloroff)
             if(chr(b) in string.printable and b >= 0x20):
                 asciistr += chr(b)
             else:
@@ -250,14 +252,15 @@ class BTreePage:
                     self.pagebytes[cell_array_pointer:cell_array_pointer+2], "big", signed=False)
                 print("\tCELL at offset: %06x" % num)
                 cell_array_pointer += 2
-                child = int.from_bytes(self.pagebytes[num-self.negoffset:num-self.negoffset+4], "big", signed=False)
+                child = int.from_bytes(
+                    self.pagebytes[num-self.negoffset:num-self.negoffset+4], "big", signed=False)
                 print(child)
                 print("\n")
             print(self.get_last_child_pointer()[0])
         return ""
 
     def info(self):
-        s = colorblue +"BTree Page Information:\n"
+        s = colorblue + "BTree Page Information:\n"
         s += "\tPage Number: %d\n" % self.number
         s += "\tPage type: %s\n" % (self.get_pagetype()[0])
         s += "\tFirst free block: %d\n" % self.get_first_free_cell()[0]
@@ -271,7 +274,8 @@ class BTreePage:
 
     def check(self):
         # is area between cell array and data really empty?
-        last_cell_pointer = self.get_cellcount()[0] * 4 + 12 + (0 if(self.pagebytes[0] != 0x02 and self.pagebytes[0] != 0x05) else 4) 
+        last_cell_pointer = self.get_cellcount(
+        )[0] * 4 + 12 + (0 if(self.pagebytes[0] != 0x02 and self.pagebytes[0] != 0x05) else 4)
         data_start = self.get_datastart()[0]
         for b in self.pagebytes[last_cell_pointer:data_start-self.negoffset]:
             if b != 0:
@@ -279,8 +283,6 @@ class BTreePage:
                 self.print_page()
                 return
         print("Page OK.")
-
-
 
     def read_data(self):
         cell_array_pointer = 8
@@ -396,27 +398,29 @@ class BTreePage:
         hexstr = ""
         asciistr = ""
         color = ""
-        for i,b in enumerate(self.pagebytes):
+        for i, b in enumerate(self.pagebytes):
             if((i < 8) or (i < 12 and (self.get_pagetype()[1] == 0x2 or self.get_pagetype()[1] == 0x5))):
                 color = coloryellow
             elif(i >= self.get_datastart()[0] - self.negoffset):
                 color = colorred
             else:
                 color = ""
-            hexstr += "%s%02x %s" % (color,b,coloroff)
+            hexstr += "%s%02x %s" % (color, b, coloroff)
             if(chr(b) in string.printable and b >= 0x20):
                 asciistr += chr(b)
             else:
                 asciistr += "."
             if(i % 16 == 15):
-                print("%08x : %s\t\t %s" % (i-15+ self.negoffset, hexstr, asciistr))
+                print("%08x : %s\t\t %s" %
+                      (i-15 + self.negoffset, hexstr, asciistr))
                 hexstr = ""
                 asciistr = ""
         else:
             if(i % 16 != 15):
                 hexstr += "   " * (16 - (i % 16))
                 asciistr += " " * (16 - (i % 16))
-                print("%08x : %s\t\t %s" % (i-15+ self.negoffset, hexstr, asciistr))
+                print("%08x : %s\t\t %s" %
+                      (i-15 + self.negoffset, hexstr, asciistr))
 
     def shortinfo(self):
         s = "Page Nr.: %d, Offset: %06x, Type: %s, Cells: %d, First free block: %04x" % (
@@ -432,29 +436,32 @@ def analyzePage(header, page, pagenr, negoffset=0, proof=False):
 
 def showFreeList(header, pages):
     g = Digraph('g', filename='freelist.gv',
-            node_attr={'shape': 'record', 'height': '.1'})
+                node_attr={'shape': 'record', 'height': '.1'})
     f = header.get_first_free_page()[0]
     if(f != 0 and len(FreeTrunkPage(pages[f-1].pagebytes).get_cells()) != 0):
         if(len(FreeTrunkPage(pages[f-1].pagebytes).get_cells()) > 30):
-            g.node('node%d' %f, nohtml('{<f%d> %d | Trunkpage } | %d Leaves' % (f,f, len(FreeTrunkPage(pages[f-1].pagebytes).get_cells()))))
+            g.node('node%d' % f, nohtml('{<f%d> %d | Trunkpage } | %d Leaves' % (
+                f, f, len(FreeTrunkPage(pages[f-1].pagebytes).get_cells()))))
         else:
-            g.node('node%d' %f, nohtml('{<f%d> %d | Trunkpage } | %s' % (f,f, FreeTrunkPage(pages[f-1].pagebytes).get_cells())))
+            g.node('node%d' % f, nohtml('{<f%d> %d | Trunkpage } | %s' % (
+                f, f, FreeTrunkPage(pages[f-1].pagebytes).get_cells())))
     else:
-        g.node('node%d' %f, nohtml('<f%d> %d' % (f,f)))
+        g.node('node%d' % f, nohtml('<f%d> %d' % (f, f)))
     while(f != 0):
         print(f)
         nf = FreeTrunkPage(pages[f-1].pagebytes).get_next_trunk_page()[0]
         if(nf != 0):
             if(len(FreeTrunkPage(pages[f-1].pagebytes).get_cells()) > 30):
-                g.node('node%d' %nf, nohtml('{<f%d> %d | Trunkpage } | %d Leaves' % (nf,nf, len(FreeTrunkPage(pages[nf-1].pagebytes).get_cells()))))
+                g.node('node%d' % nf, nohtml('{<f%d> %d | Trunkpage } | %d Leaves' % (
+                    nf, nf, len(FreeTrunkPage(pages[nf-1].pagebytes).get_cells()))))
             else:
-                g.node('node%d' %nf, nohtml('{<f%d> %d | Trunkpage } | %s' % (nf,nf, FreeTrunkPage(pages[nf-1].pagebytes).get_cells())))
+                g.node('node%d' % nf, nohtml('{<f%d> %d | Trunkpage } | %s' % (
+                    nf, nf, FreeTrunkPage(pages[nf-1].pagebytes).get_cells())))
         else:
-            g.node('node%d' %nf, nohtml('<f%d> %d' % (nf,nf)))
-        g.edge('node%d:f%d'% (f,f), 'node%d:f%d'% (nf,nf))
+            g.node('node%d' % nf, nohtml('<f%d> %d' % (nf, nf)))
+        g.edge('node%d:f%d' % (f, f), 'node%d:f%d' % (nf, nf))
         f = nf
     g.view()
-
 
 
 def interactive(header, pages, overview, proof=False):
@@ -473,7 +480,8 @@ def interactive(header, pages, overview, proof=False):
                 print("Error with the header")
         if(cmdline[0] == "o"):
             try:
-                pydoc.pager(colorblue+"Showing overview of pages:\n"+coloroff+overview)
+                pydoc.pager(
+                    colorblue+"Showing overview of pages:\n"+coloroff+overview)
             except Exception as e:
                 print(e)
                 print("Error with the overview")
@@ -562,7 +570,8 @@ def analyze(db, proof=False):
         b = BTreePage(p, i, offset)
         if(b.get_pagetype()[1] == 0x00):
             f = FreeTrunkPage(b.pagebytes)
-            overview += "Potential free-page, Offset: %08x, Number: %d, Next Trunk: %d, #Leafes:%d\n" % (offset, i, f.get_next_trunk_page()[0], f.get_pointer_count()[0])
+            overview += "Potential free-page, Offset: %08x, Number: %d, Next Trunk: %d, #Leafes:%d\n" % (
+                offset, i, f.get_next_trunk_page()[0], f.get_pointer_count()[0])
         else:
             overview += b.shortinfo() + "\n"
         offset += header.get_page_size()[0]
