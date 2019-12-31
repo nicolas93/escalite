@@ -471,10 +471,20 @@ def showBTree(header, pages, start):
     if(len(childs) > 0):
         print(childs)
         if not(len(pages[childs[0]-1].get_tree_childs()) > 0):
-            print("I am grandma! %d" % start)
-    for c in childs:
-        g = showBTreeSubNodes(header, pages, c, g)
-        g.edge('node%d:f%d' % (start, start), 'node%d:f%d' % (c, c))
+            childstring = "{<f%d> Leaves: | %d" %(childs[0], childs[0])
+            for i, c in enumerate(childs[1:]):
+                if(((i+1) % 16) == 0):
+                    childstring += "| %d" % c
+                else:
+                    childstring += ", %d" % c
+            childstring += "}" 
+            print(childstring)
+            g.node('node%d' % childs[0], nohtml(childstring))
+            g.edge('node%d:f%d' % (start, start), 'node%d:f%d' % (childs[0], childs[0]))
+        else:
+            for c in childs:
+                g = showBTreeSubNodes(header, pages, c, g)
+                g.edge('node%d:f%d' % (start, start), 'node%d:f%d' % (c, c))
     g.view()
 
 def showBTreeSubNodes(header, pages, start, g):
@@ -483,7 +493,6 @@ def showBTreeSubNodes(header, pages, start, g):
     if(len(childs) > 0):
         print(childs)
         if not(len(pages[childs[0]-1].get_tree_childs()) > 0):
-            print("I am grandma! %d" % start)
             childstring = "{<f%d> Leaves: | %d" %(childs[0], childs[0])
             for i, c in enumerate(childs[1:]):
                 if(((i+1) % 16) == 0):
@@ -524,7 +533,7 @@ def interactive(header, pages, overview, proof=False):
             try:
                 global Digraph, nohtml
                 from graphviz import Digraph, nohtml
-                showBTree(header, pages, 2)
+                showBTree(header, pages, 2 if len(cmdline) == 1 else int(cmdline[1]))
             except Exception as e:
                 print(e)
                 print("Error with the header")
@@ -582,13 +591,14 @@ def interactive(header, pages, overview, proof=False):
             print("Commands:")
             print("h\t\tShow header info")
             print("o\t\tShow overview of all pages")
+            print("b <n>\t\tShow BTree graph (Starting at page n, Default n=2)")
             print("p <n>\t\tanalyze page <n> (As a normal BTree page)")
             print("pr <n>\t\tSearch removed data on page <n>")
             print("pc <n>\t\tPrint celldata on page <n>")
             print("pd <n>\t\tPrint hexdump of page <n>")
             print("f <n>\t\tanalyze page <n> (As a freelist trunk page)")
             print("fcl <n>\t\tCheck if freelist-leaf page <n> is empty")
-            print("fl <n>\t\tShow freelist graph")
+            print("fl\t\tShow freelist graph")
             print("exit|q\t\texit")
 
 
