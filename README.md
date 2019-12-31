@@ -29,6 +29,9 @@ SQLite forensic tool
 #### Freelist graph: Large empty database
 ![Large empty database](freelist_example.png "Freelist graph: Large empty database")
 
+#### BTree graph: Large database (test_fl.db)
+![BTree graph: test_fl.db](btree_example.png "BTree graph: test_fl.db")
+
 
 ## Features planned
 
