@@ -240,24 +240,23 @@ class BTreePage:
         num = int.from_bytes(self.pagebytes[8:12], "big", signed=False)
         return num, self.pagebytes[8:12]
 
-    def get_tree_string(self):
+    def get_tree_childs(self):
+        childs = []
         if(self.pagebytes[0] == 0x02 or self.pagebytes[0] == 0x05):
+            print("a")
             cell_array_pointer = 12
-            cell_array_end = (self.get_cellcount()[0] * 2) + 8
-            if(self.pagebytes[0] == 0x2 or self.pagebytes[0] == 0x5):
-                cell_array_pointer += 4
-                cell_array_end += 4
+            cell_array_end = (self.get_cellcount()[0] * 2) + 12
+            print(cell_array_pointer)
+            print(cell_array_end)
             while(cell_array_end > cell_array_pointer):
                 num = int.from_bytes(
                     self.pagebytes[cell_array_pointer:cell_array_pointer+2], "big", signed=False)
-                print("\tCELL at offset: %06x" % num)
                 cell_array_pointer += 2
                 child = int.from_bytes(
                     self.pagebytes[num-self.negoffset:num-self.negoffset+4], "big", signed=False)
-                print(child)
-                print("\n")
-            print(self.get_last_child_pointer()[0])
-        return ""
+                childs.append(child)
+            childs.append(self.get_last_child_pointer()[0])
+        return childs
 
     def info(self):
         s = colorblue + "BTree Page Information:\n"
@@ -464,6 +463,42 @@ def showFreeList(header, pages):
     g.view()
 
 
+def showBTree(header, pages, start):
+    g = Digraph('g', filename='btree.gv',
+                node_attr={'shape': 'record', 'height': '.1'})
+    childs = pages[start-1].get_tree_childs()
+    g.node('node%d' % start, nohtml('{BTree Root | <f%d> %d}' % (start,start)))
+    if(len(childs) > 0):
+        print(childs)
+        if not(len(pages[childs[0]-1].get_tree_childs()) > 0):
+            print("I am grandma! %d" % start)
+    for c in childs:
+        g = showBTreeSubNodes(header, pages, c, g)
+        g.edge('node%d:f%d' % (start, start), 'node%d:f%d' % (c, c))
+    g.view()
+
+def showBTreeSubNodes(header, pages, start, g):
+    childs = pages[start-1].get_tree_childs()
+    g.node('node%d' % start, nohtml('<f%d> %d' % (start,start)))
+    if(len(childs) > 0):
+        print(childs)
+        if not(len(pages[childs[0]-1].get_tree_childs()) > 0):
+            print("I am grandma! %d" % start)
+            childstring = "{<f%d> Leaves: | %d" %(childs[0], childs[0])
+            for i, c in enumerate(childs[1:]):
+                if(((i+1) % 16) == 0):
+                    childstring += "| %d" % c
+                else:
+                    childstring += ", %d" % c
+            childstring += "}" 
+            print(childstring)
+            g.node('node%d' % childs[0], nohtml(childstring))
+            g.edge('node%d:f%d' % (start, start), 'node%d:f%d' % (childs[0], childs[0]))
+            return g
+    for c in childs:
+        showBTreeSubNodes(header, pages, c, g)
+    return g
+
 def interactive(header, pages, overview, proof=False):
     exit = False
     while not exit:
@@ -487,7 +522,9 @@ def interactive(header, pages, overview, proof=False):
                 print("Error with the overview")
         if(cmdline[0] == "b"):
             try:
-                pages[1].get_tree_string()
+                global Digraph, nohtml
+                from graphviz import Digraph, nohtml
+                showBTree(header, pages, 2)
             except Exception as e:
                 print(e)
                 print("Error with the header")
