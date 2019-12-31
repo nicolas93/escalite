@@ -407,9 +407,9 @@ class BTreePage:
                 color = ""
             hexstr += "%s%02x %s" % (color, b, coloroff)
             if(chr(b) in string.printable and b >= 0x20):
-                asciistr += chr(b)
+                asciistr += "%s%s%s" % (color, chr(b), coloroff)
             else:
-                asciistr += "."
+                asciistr += "%s.%s" % (color, coloroff)
             if(i % 16 == 15):
                 print("%08x : %s\t\t %s" %
                       (i-15 + self.negoffset, hexstr, asciistr))
@@ -420,7 +420,7 @@ class BTreePage:
                 hexstr += "   " * (16 - (i % 16))
                 asciistr += " " * (16 - (i % 16))
                 print("%08x : %s\t\t %s" %
-                      (i-15 + self.negoffset, hexstr, asciistr))
+                      (i-(i%16) + self.negoffset, hexstr, asciistr))
 
     def shortinfo(self):
         s = "Page Nr.: %d, Offset: %06x, Type: %s, Cells: %d, First free block: %04x" % (
