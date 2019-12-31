@@ -10,10 +10,10 @@ import string
 import pydoc
 
 
-colorred = "\x1B[31;40m"
-colorgreen = "\x1B[32;40m"
-coloryellow = "\x1B[33;40m"
-colorblue = "\x1B[34;40m"
+colorred = "\x1B[31m"
+colorgreen = "\x1B[32m"
+coloryellow = "\x1B[33m"
+colorblue = "\x1B[34m"
 coloroff = "\x1B[0m"
 
 Digraph = None
