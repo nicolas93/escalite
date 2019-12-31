@@ -89,7 +89,7 @@ class Header:
         s += "\tDB Size(Bytes): %d\n" % (self.get_page_size()
                                          [0] * self.get_db_size()[0])
         s += "\tChange count: %d\n" % self.get_change_count()[0]
-        s += "\tFree Pages: %d\n" % self.get_count_free_pages()[0]
+        s += "\tFree Pages(dec): %d\n" % self.get_count_free_pages()[0]
         s += "\tFirst free page: %d\n" % self.get_first_free_page()[0]
         s += "\tAuto vaccuum: %s\n" % binascii.hexlify(
             self.get_auto_vacuum_mode()[1]).decode()
@@ -422,7 +422,7 @@ class BTreePage:
                       (i-(i%16) + self.negoffset, hexstr, asciistr))
 
     def shortinfo(self):
-        s = "Page Nr.: %d, Offset: %06x, Type: %s, Cells: %d, First free block: %04x" % (
+        s = "Page Nr.: %d, Offset: 0x%06x, Type: %s, Cells: %d, First free block: 0x%04x" % (
             self.number, self.totaloffset, self.get_pagetype()[0], self.get_cellcount()[0], self.get_first_free_cell()[0])
         return s
 
