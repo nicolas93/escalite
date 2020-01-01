@@ -3,6 +3,11 @@ SQLite forensic tool, developed to make the analysis of SQLite databases easier.
 
 All classes are combined in one file to make the program as portable as possible. Python libraries that are not part of the standard python installation are optional (for example graphviz).
 
+## PR & Issues
+If you find something that is wrong interpreted or not supported at all, please open an issue and describe the missing feature, where it is documented and if possible provide a database to test with.
+
+If you implemented the missing feature yourself, I will happily accept your pull-request.
+
 ## Usage
 
 ```
@@ -33,6 +38,9 @@ All classes are combined in one file to make the program as portable as possible
 
 #### BTree graph: Large database (test_fl.db)
 ![BTree graph: test_fl.db](img/btree_example.png "BTree graph: test_fl.db")
+
+#### BTree graph: Large database 2(test_fl2.db)
+![BTree graph: test_fl.db](img/btree_example2.png "BTree graph: test_fl2.db")
 
 
 ## Features planned

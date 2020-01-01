@@ -313,6 +313,97 @@ class BTreePage:
             self.read_cell(num)
             print("\n")
 
+    def read_data_master(self):
+        if(self.pagebytes[0] != 0xd):
+            print("Multipage master-tables are not yet implemented")
+            return [],[]
+        cell_array_pointer = 8
+        cell_array_end = (self.get_cellcount()[0] * 2) + 8
+        tablenames = []
+        tablepagenrs = []
+        if(self.pagebytes[0] == 0x2 or self.pagebytes[0] == 0x5):
+            cell_array_pointer += 4
+            cell_array_end += 4
+        while(cell_array_end > cell_array_pointer):
+            num = int.from_bytes(
+                self.pagebytes[cell_array_pointer:cell_array_pointer+2], "big", signed=False)
+            print("\tCELL at offset: 0x%06x" % num)
+            cell_array_pointer += 2
+            name, pagenr = self.read_cell_master(num)
+            tablenames.append(name)
+            tablepagenrs.append(pagenr)
+            print("\n")
+        return tablenames, tablepagenrs
+
+    def read_cell_master(self, start, intent=2):
+        pointer = start - self.negoffset
+        record_length_bytes = b""
+        while(self.pagebytes[pointer] >= 0x80):
+            record_length_bytes += self.pagebytes[pointer:pointer+1]
+            pointer += 1
+        record_length_bytes += self.pagebytes[pointer:pointer+1]
+        pointer += 1
+        print("\t"*intent + "Cell length: %d" %
+              self.varint2int(record_length_bytes))
+
+        id_bytes = b""
+        while(self.pagebytes[pointer] >= 0x80):
+            id_bytes += self.pagebytes[pointer:pointer+1]
+            pointer += 1
+        id_bytes += self.pagebytes[pointer:pointer+1]
+        pointer += 1
+        print("\t"*intent + "ID: %d" % self.varint2int(id_bytes))
+
+        record_header_length_bytes = b""
+        while(self.pagebytes[pointer] >= 0x80):
+            record_header_length_bytes += self.pagebytes[pointer:pointer+1]
+            pointer += 1
+        record_header_length_bytes += self.pagebytes[pointer:pointer+1]
+        pointer += 1
+        print("\t"*intent + "Record header length: %d" %
+              self.varint2int(record_header_length_bytes))
+
+        types = []
+        i = 0
+        while(i < self.varint2int(record_header_length_bytes)-len(record_header_length_bytes)):
+            type_bytes = b""
+            while(self.pagebytes[pointer] >= 0x80):
+                type_bytes += self.pagebytes[pointer:pointer+1]
+                pointer += 1
+                i += 1
+            type_bytes += self.pagebytes[pointer:pointer+1]
+            pointer += 1
+            #print("\t"*intent + "Type: %s" % self.varint2int(type_bytes))
+            types.append(self.varint2int(type_bytes))
+            i += 1
+
+        name = ""
+        pagenr = 0
+        for i,t in enumerate(types):
+            string = ""
+            value = 0
+            if(t < 5):
+                value = int.from_bytes(self.pagebytes[pointer:pointer+t], "big", signed=True)
+                pointer += t
+            elif(t == 5):
+                value = int.from_bytes(self.pagebytes[pointer:pointer+6], "big", signed=True)
+                pointer += 6
+            elif(t == 6):
+                value = int.from_bytes(self.pagebytes[pointer:pointer+8], "big", signed=True)
+                pointer += 8
+            elif(t >= 12 and t % 2 == 0):
+                length = int((t-12)/2)
+                pointer += length
+            elif(t >= 12 and t % 2 == 1):
+                length = int((t-13)/2)
+                string = self.pagebytes[pointer:pointer+length].decode()
+                pointer += length
+            if(i == 3):
+                pagenr = value
+            if(i == 1):
+                name = string
+        return name, pagenr
+
     def varint2int(self, vi):
         i = 0
         x = 0
@@ -479,11 +570,9 @@ def showFreeList(header, pages):
     g.view()
 
 
-def showBTree(header, pages, start):
-    g = Digraph('g', filename='btree.gv', graph_attr={'splines':'false'},
-                node_attr={'shape': 'record', 'height': '.1'})
+def showBTree(header, pages, start, name, g):
     childs = pages[start-1].get_tree_childs()
-    g.node('node%d' % start, nohtml('{BTree Root | <f%d> %d}' % (start,start)))
+    g.node('node%d' % start, nohtml('{BTree Root:%s | <f%d> %d}' % (name,start,start)))
     if(len(childs) > 0):
         print(childs)
         if not(len(pages[childs[0]-1].get_tree_childs()) > 0):
@@ -501,7 +590,6 @@ def showBTree(header, pages, start):
             for c in childs:
                 g = showBTreeSubNodes(header, pages, c, g)
                 g.edge('node%d:f%d' % (start, start), 'node%d:f%d' % (c, c))
-    g.view()
 
 def showBTreeSubNodes(header, pages, start, g):
     childs = pages[start-1].get_tree_childs()
@@ -526,6 +614,7 @@ def showBTreeSubNodes(header, pages, start, g):
 
 def interactive(header, pages, overview, proof=False):
     exit = False
+    global Digraph, nohtml
     while not exit:
         cmd = input("cmd:")
         cmdline = cmd.split(" ")
@@ -547,12 +636,21 @@ def interactive(header, pages, overview, proof=False):
                 print("Error with the overview")
         if(cmdline[0] == "b"):
             try:
-                global Digraph, nohtml
                 from graphviz import Digraph, nohtml
-                showBTree(header, pages, 2 if len(cmdline) == 1 else int(cmdline[1]))
+                g = Digraph('g', filename='btree.gv', graph_attr={'splines':'false'},
+                        node_attr={'shape': 'record', 'height': '.1'})
+                if(len(cmdline) == 1):
+                    tablenames, tablepagenrs = pages[0].read_data_master()
+                    print(tablepagenrs)
+                    for i in range(0, len(tablenames)):
+                        print("i:%d pagenr:%d name:%s"%(i, tablepagenrs[i], tablenames[i]))
+                        showBTree(header, pages, tablepagenrs[i], tablenames[i], g)
+                else:
+                    showBTree(header, pages, int(cmdline[1]), "Root", g)
+                g.view()
             except Exception as e:
                 print(e)
-                print("Error with the header")
+                print("Error with the btree")
         if(cmdline[0] == "p"):
             try:
                 analyzePage(header, pages[int(
@@ -595,7 +693,6 @@ def interactive(header, pages, overview, proof=False):
                 print(e)
         if(cmdline[0] == "fl"):
             try:
-                global Digraph, nohtml
                 from graphviz import Digraph, nohtml
                 showFreeList(header, pages)
             except Exception as e:
