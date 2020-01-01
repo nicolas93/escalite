@@ -1,5 +1,7 @@
 # escalite
-SQLite forensic tool
+SQLite forensic tool, developed to make the analysis of SQLite databases easier. Primarly used for an university course about IT forensic but probably also useful for CTFs and other use cases. No guarantee of completeness or correctness.
+
+All classes are combined in one file to make the program as portable as possible. Python libraries that are not part of the standard python installation are optional (for example graphviz).
 
 ## Usage
 
