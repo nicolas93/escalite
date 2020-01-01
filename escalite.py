@@ -15,7 +15,8 @@
 #    You should have received a copy of the GNU General Public License
 #    along with Escalite.  If not, see <http://www.gnu.org/licenses/>.
 
-#    2019, Nicolas Schickert, TU Darmstadt
+#    2019-2020, Nicolas Schickert, TU Darmstadt
+#    github.com/nicolas93/escalite
 
 import argparse
 import binascii
@@ -104,7 +105,7 @@ class Header:
         s += "\tDB Size(Bytes): %d\n" % (self.get_page_size()
                                          [0] * self.get_db_size()[0])
         s += "\tChange count: %d\n" % self.get_change_count()[0]
-        s += "\tFree Pages(dec): %d\n" % self.get_count_free_pages()[0]
+        s += "\tFree Pages: %d\n" % self.get_count_free_pages()[0]
         s += "\tFirst free page: %d\n" % self.get_first_free_page()[0]
         s += "\tAuto vaccuum: %s\n" % binascii.hexlify(
             self.get_auto_vacuum_mode()[1]).decode()
@@ -392,7 +393,7 @@ class BTreePage:
                       self.pagebytes[pointer:pointer+length].decode())
                 pointer += length
             else:
-                print("unknown")
+                print("\t" * intent + "unknown")
 
         return 0
 
@@ -647,10 +648,10 @@ def analyze(db, proof=False):
 
 def main():
     parser = argparse.ArgumentParser(
-        description='Find main colors in a given image.')
+        description='Examine the structure of a SQLite database and recover removed entries.')
     parser.add_argument("database", help="SQLite database file to be examined")
     parser.add_argument('--proof', action='store_true',
-                        help="show proofs when possible")
+                        help="show proofs when possible (not yet implemented)")
     args = parser.parse_args()
     try:
         db = open(args.database, "rb")
