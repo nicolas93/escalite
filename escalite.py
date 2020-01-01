@@ -1,6 +1,21 @@
 #!/usr/bin/env python3
-# 2019, Nicolas Schickert, TU Darmstadt
 
+#    This file is part of Escalite.
+#
+#    Escalite is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU General Public License as published by
+#    the Free Software Foundation, either version 3 of the License, or
+#    (at your option) any later version.
+#
+#    Escalite is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU General Public License for more details.
+#
+#    You should have received a copy of the GNU General Public License
+#    along with Escalite.  If not, see <http://www.gnu.org/licenses/>.
+
+#    2019, Nicolas Schickert, TU Darmstadt
 
 import argparse
 import binascii
@@ -218,7 +233,7 @@ class BTreePage:
         elif(self.pagebytes[0] == 0x0d):
             return "Leaf, Table", self.pagebytes[0]
         else:
-            return "Unknown %02x" % self.pagebytes[0], self.pagebytes[0]
+            return "Unknown 0x%02x" % self.pagebytes[0], self.pagebytes[0]
 
     def get_first_free_cell(self):
         num = int.from_bytes(self.pagebytes[1:3], "big", signed=False)
@@ -292,7 +307,7 @@ class BTreePage:
         while(cell_array_end > cell_array_pointer):
             num = int.from_bytes(
                 self.pagebytes[cell_array_pointer:cell_array_pointer+2], "big", signed=False)
-            print("\tCELL at offset: %06x" % num)
+            print("\tCELL at offset: 0x%06x" % num)
             cell_array_pointer += 2
             self.read_cell(num)
             print("\n")
@@ -388,7 +403,7 @@ class BTreePage:
         while(freeblock != 0):
             length = int.from_bytes(
                 self.pagebytes[freeblock+2:freeblock+4], "big", signed=False)
-            print("\tFree Block: \n\t\tOffset: %06x\n\t\tLength: %06d\n\t\tData: " % (
+            print("\tFree Block: \n\t\tOffset: 0x%06x\n\t\tLength: %06d\n\t\tData: " % (
                 freeblock, length) + binascii.hexlify(self.pagebytes[freeblock:freeblock+length]).decode())
             freeblock = int.from_bytes(
                 self.pagebytes[freeblock:freeblock+2], "big", signed=False)
@@ -464,7 +479,7 @@ def showFreeList(header, pages):
 
 
 def showBTree(header, pages, start):
-    g = Digraph('g', filename='btree.gv',
+    g = Digraph('g', filename='btree.gv', graph_attr={'splines':'false'},
                 node_attr={'shape': 'record', 'height': '.1'})
     childs = pages[start-1].get_tree_childs()
     g.node('node%d' % start, nohtml('{BTree Root | <f%d> %d}' % (start,start)))
@@ -617,7 +632,7 @@ def analyze(db, proof=False):
         b = BTreePage(p, i, offset)
         if(b.get_pagetype()[1] == 0x00):
             f = FreeTrunkPage(b.pagebytes)
-            overview += "Potential free-page, Offset: %08x, Number: %d, Next Trunk: %d, #Leafes:%d\n" % (
+            overview += "Potential free-page, Offset: 0x%08x, Number: %d, Next Trunk: %d, #Leafes:%d\n" % (
                 offset, i, f.get_next_trunk_page()[0], f.get_pointer_count()[0])
         else:
             overview += b.shortinfo() + "\n"
