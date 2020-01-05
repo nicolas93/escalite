@@ -184,11 +184,12 @@ class FreeLeafPage:
                 return "Freelist leaf page still contains information!", False
         return "Freelist leaf page is clear.", True
 
-    def print_page(self):
+    def dump_page(self):
         c = 1
         hexstr = ""
         asciistr = ""
         color = ""
+        text = ""
         for b in self.pagebytes:
             if(b != 0):
                 color = colorred
@@ -200,14 +201,15 @@ class FreeLeafPage:
             else:
                 asciistr += "."
             if(c % 16 == 0 and c != 0):
-                print("%08x : %s\t\t %s" % (c-16, hexstr, asciistr))
+                text += ("%08x : %s\t\t %s\n" % (c-16, hexstr, asciistr))
                 hexstr = ""
                 asciistr = ""
             c += 1
         if(c % 16 != 0):
             hexstr += "   " * (16 - (c % 16))
             asciistr += " " * (16 - (c % 16))
-            print("%08x : %s\t\t %s" % (c-16, hexstr, asciistr))
+            text += ("%08x : %s\t\t %s\n" % (c-16, hexstr, asciistr))
+        return text
 
 
 class BTreePage:
@@ -295,7 +297,7 @@ class BTreePage:
         for b in self.pagebytes[last_cell_pointer:data_start-self.negoffset]:
             if b != 0:
                 print("Contains undeleted data!!")
-                self.print_page()
+                print(self.dump_page())
                 return
         print("Page OK.")
 
@@ -500,10 +502,11 @@ class BTreePage:
             freeblock = int.from_bytes(
                 self.pagebytes[freeblock:freeblock+2], "big", signed=False)
 
-    def print_page(self):
+    def dump_page(self):
         hexstr = ""
         asciistr = ""
         color = ""
+        text = ""
         for i, b in enumerate(self.pagebytes):
             if((i < 8) or (i < 12 and (self.get_pagetype()[1] == 0x2 or self.get_pagetype()[1] == 0x5))):
                 color = coloryellow
@@ -517,7 +520,7 @@ class BTreePage:
             else:
                 asciistr += "%s.%s" % (color, coloroff)
             if(i % 16 == 15):
-                print("%08x : %s\t\t %s" %
+                text += ("%08x : %s\t\t %s\n" %
                       (i-15 + self.negoffset, hexstr, asciistr))
                 hexstr = ""
                 asciistr = ""
@@ -525,8 +528,9 @@ class BTreePage:
             if(i % 16 != 15):
                 hexstr += "   " * (16 - (i % 16))
                 asciistr += " " * (16 - (i % 16))
-                print("%08x : %s\t\t %s" %
+                text += ("%08x : %s\t\t %s\n" %
                       (i-(i%16) + self.negoffset, hexstr, asciistr))
+        return text
 
     def shortinfo(self):
         s = "Page Nr.: %d, Offset: 0x%06x, Type: %s, Cells: %d, First free block: 0x%04x" % (
@@ -672,7 +676,11 @@ def interactive(header, pages, overview, proof=False):
                 print("Error with this page")
         if(cmdline[0] == "pd"):
             try:
-                pages[int(cmdline[1])-1].print_page()
+                data = pages[int(cmdline[1])-1].dump_page()
+                if(len(data.split("\n")) <= 1000):
+                    print(data)
+                else:
+                    pydoc.pager(data)
             except Exception as e:
                 print(e)
                 print("Error with this page")
@@ -687,7 +695,11 @@ def interactive(header, pages, overview, proof=False):
             try:
                 f = FreeLeafPage(pages[int(cmdline[1])-1].pagebytes)
                 if not (f.check()[1]):
-                    f.print_page()
+                    data = f.dump_page()
+                    if(len(data.split("\n")) <= 1000):
+                        print(data)
+                    else:
+                        pydoc.pager(data)
             except Exception as e:
                 print("Error with this page")
                 print(e)
