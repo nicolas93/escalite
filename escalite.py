@@ -51,8 +51,8 @@ class Header:
         num = int.from_bytes(self.headerbytes[16:18], "big", signed=False)
         if(num == 1):
             num = 65536
-        elif(num < 512 or (math.log(512, 2) % 1 > 0)):
-            print("Non-standard page size!")
+        elif(num < 512 or (math.log(num, 2) % 1 > 0)):
+            print(colorred+"Non-standard page size!"+coloroff)
         return num, self.headerbytes[16:18]
 
     def get_file_format_write_version(self):
