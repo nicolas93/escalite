@@ -492,15 +492,15 @@ class BTreePage:
 
     def read_removed_data(self):
         freeblock = self.get_first_free_cell()[0] - self.negoffset
-        if(freeblock == 0):
+        if(freeblock == (0-self.negoffset)):
             print("\n\tNo free blocks to retrieve.")
-        while(freeblock != 0):
+        while(freeblock != (0-self.negoffset)):
             length = int.from_bytes(
                 self.pagebytes[freeblock+2:freeblock+4], "big", signed=False)
             print("\tFree Block: \n\t\tOffset: 0x%06x\n\t\tLength: %06d\n\t\tData: " % (
-                freeblock, length) + binascii.hexlify(self.pagebytes[freeblock:freeblock+length]).decode())
+                freeblock+self.negoffset, length) + binascii.hexlify(self.pagebytes[freeblock:freeblock+length]).decode())
             freeblock = int.from_bytes(
-                self.pagebytes[freeblock:freeblock+2], "big", signed=False)
+                self.pagebytes[freeblock:freeblock+2], "big", signed=False) -self.negoffset
 
     def dump_page(self):
         hexstr = ""
