@@ -318,7 +318,7 @@ class BTreePage:
     def read_data_master(self):
         if(self.pagebytes[0] != 0xd):
             print("Multipage master-tables are not yet implemented")
-            return [],[]
+            return [], []
         cell_array_pointer = 8
         cell_array_end = (self.get_cellcount()[0] * 2) + 8
         tablenames = []
@@ -381,17 +381,20 @@ class BTreePage:
 
         name = ""
         pagenr = 0
-        for i,t in enumerate(types):
+        for i, t in enumerate(types):
             string = ""
             value = 0
             if(t < 5):
-                value = int.from_bytes(self.pagebytes[pointer:pointer+t], "big", signed=True)
+                value = int.from_bytes(
+                    self.pagebytes[pointer:pointer+t], "big", signed=True)
                 pointer += t
             elif(t == 5):
-                value = int.from_bytes(self.pagebytes[pointer:pointer+6], "big", signed=True)
+                value = int.from_bytes(
+                    self.pagebytes[pointer:pointer+6], "big", signed=True)
                 pointer += 6
             elif(t == 6):
-                value = int.from_bytes(self.pagebytes[pointer:pointer+8], "big", signed=True)
+                value = int.from_bytes(
+                    self.pagebytes[pointer:pointer+8], "big", signed=True)
                 pointer += 8
             elif(t >= 12 and t % 2 == 0):
                 length = int((t-12)/2)
@@ -500,7 +503,7 @@ class BTreePage:
             print("\tFree Block: \n\t\tOffset: 0x%06x\n\t\tLength: %06d\n\t\tData: " % (
                 freeblock+self.negoffset, length) + binascii.hexlify(self.pagebytes[freeblock:freeblock+length]).decode())
             freeblock = int.from_bytes(
-                self.pagebytes[freeblock:freeblock+2], "big", signed=False) -self.negoffset
+                self.pagebytes[freeblock:freeblock+2], "big", signed=False) - self.negoffset
 
     def dump_page(self):
         hexstr = ""
@@ -521,7 +524,7 @@ class BTreePage:
                 asciistr += "%s.%s" % (color, coloroff)
             if(i % 16 == 15):
                 text += ("%08x : %s\t\t %s\n" %
-                      (i-15 + self.negoffset, hexstr, asciistr))
+                         (i-15 + self.negoffset, hexstr, asciistr))
                 hexstr = ""
                 asciistr = ""
         else:
@@ -529,7 +532,7 @@ class BTreePage:
                 hexstr += "   " * (16 - (i % 16))
                 asciistr += " " * (16 - (i % 16))
                 text += ("%08x : %s\t\t %s\n" %
-                      (i-(i%16) + self.negoffset, hexstr, asciistr))
+                         (i-(i % 16) + self.negoffset, hexstr, asciistr))
         return text
 
     def shortinfo(self):
@@ -576,45 +579,50 @@ def showFreeList(header, pages):
 
 def showBTree(header, pages, start, name, g):
     childs = pages[start-1].get_tree_childs()
-    g.node('node%d' % start, nohtml('{BTree Root:%s | <f%d> %d}' % (name,start,start)))
+    g.node('node%d' % start, nohtml(
+        '{BTree Root:%s | <f%d> %d}' % (name, start, start)))
     if(len(childs) > 0):
         print(childs)
         if not(len(pages[childs[0]-1].get_tree_childs()) > 0):
-            childstring = "{<f%d> Leaves: | %d" %(childs[0], childs[0])
+            childstring = "{<f%d> Leaves: | %d" % (childs[0], childs[0])
             for i, c in enumerate(childs[1:]):
                 if(((i+1) % 16) == 0):
                     childstring += "| %d" % c
                 else:
                     childstring += ", %d" % c
-            childstring += "}" 
+            childstring += "}"
             print(childstring)
             g.node('node%d' % childs[0], nohtml(childstring))
-            g.edge('node%d:f%d' % (start, start), 'node%d:f%d' % (childs[0], childs[0]))
+            g.edge('node%d:f%d' % (start, start), 'node%d:f%d' %
+                   (childs[0], childs[0]))
         else:
             for c in childs:
                 g = showBTreeSubNodes(header, pages, c, g)
                 g.edge('node%d:f%d' % (start, start), 'node%d:f%d' % (c, c))
 
+
 def showBTreeSubNodes(header, pages, start, g):
     childs = pages[start-1].get_tree_childs()
-    g.node('node%d' % start, nohtml('<f%d> %d' % (start,start)))
+    g.node('node%d' % start, nohtml('<f%d> %d' % (start, start)))
     if(len(childs) > 0):
         print(childs)
         if not(len(pages[childs[0]-1].get_tree_childs()) > 0):
-            childstring = "{<f%d> Leaves: | %d" %(childs[0], childs[0])
+            childstring = "{<f%d> Leaves: | %d" % (childs[0], childs[0])
             for i, c in enumerate(childs[1:]):
                 if(((i+1) % 16) == 0):
                     childstring += "| %d" % c
                 else:
                     childstring += ", %d" % c
-            childstring += "}" 
+            childstring += "}"
             print(childstring)
             g.node('node%d' % childs[0], nohtml(childstring))
-            g.edge('node%d:f%d' % (start, start), 'node%d:f%d' % (childs[0], childs[0]))
+            g.edge('node%d:f%d' % (start, start), 'node%d:f%d' %
+                   (childs[0], childs[0]))
             return g
     for c in childs:
         showBTreeSubNodes(header, pages, c, g)
     return g
+
 
 def interactive(header, pages, overview, proof=False):
     exit = False
@@ -633,22 +641,24 @@ def interactive(header, pages, overview, proof=False):
                 print("Error with the header")
         if(cmdline[0] == "o"):
             try:
-                pydoc.pager(
-                    colorblue+"Showing overview of pages:\n"+coloroff+overview)
+                pydoc.pipepager(
+                    colorblue+"Showing overview of pages:\n"+coloroff+overview, cmd='less -R')
             except Exception as e:
                 print(e)
                 print("Error with the overview")
         if(cmdline[0] == "b"):
             try:
                 from graphviz import Digraph, nohtml
-                g = Digraph('g', filename='btree.gv', graph_attr={'splines':'false'},
-                        node_attr={'shape': 'record', 'height': '.1'})
+                g = Digraph('g', filename='btree.gv', graph_attr={'splines': 'false'},
+                            node_attr={'shape': 'record', 'height': '.1'})
                 if(len(cmdline) == 1):
                     tablenames, tablepagenrs = pages[0].read_data_master()
                     print(tablepagenrs)
                     for i in range(0, len(tablenames)):
-                        print("i:%d pagenr:%d name:%s"%(i, tablepagenrs[i], tablenames[i]))
-                        showBTree(header, pages, tablepagenrs[i], tablenames[i], g)
+                        print("i:%d pagenr:%d name:%s" %
+                              (i, tablepagenrs[i], tablenames[i]))
+                        showBTree(header, pages,
+                                  tablepagenrs[i], tablenames[i], g)
                 else:
                     showBTree(header, pages, int(cmdline[1]), "Root", g)
                 g.view()
@@ -680,7 +690,7 @@ def interactive(header, pages, overview, proof=False):
                 if(len(data.split("\n")) <= 1000):
                     print(data)
                 else:
-                    pydoc.pager(data)
+                    pydoc.pipepager(data, cmd='less -R')
             except Exception as e:
                 print(e)
                 print("Error with this page")
@@ -699,7 +709,7 @@ def interactive(header, pages, overview, proof=False):
                     if(len(data.split("\n")) <= 1000):
                         print(data)
                     else:
-                        pydoc.pager(data)
+                        pydoc.pipepager(data, cmd='less -R')
             except Exception as e:
                 print("Error with this page")
                 print(e)
@@ -749,7 +759,7 @@ def analyze(db, proof=False):
         offset += header.get_page_size()[0]
         pages.append(b)
     if(header.get_db_size()[0] > 30):
-        pydoc.pager(colorblue+"Showing overview of pages:\n"+coloroff+overview)
+        pydoc.pipepager(colorblue+"Showing overview of pages:\n"+coloroff+overview, cmd='less -R')
     else:
         print(overview)
     interactive(header, pages, overview)
