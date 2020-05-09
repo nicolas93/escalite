@@ -24,7 +24,7 @@ import math
 import os
 import string
 import pydoc
-
+import struct
 
 colorred = "\x1B[31m"
 colorgreen = "\x1B[32m"
@@ -465,7 +465,7 @@ class BTreePage:
             types.append(self.varint2int(type_bytes))
             i += 1
 
-        for t in types:
+        for t in types: # See here for documentation: https://www.sqlite.org/fileformat.html
             if(t < 5):
                 print("\t" * intent + "Type: %d (int) | Value: %d" %
                       (t, int.from_bytes(self.pagebytes[pointer:pointer+t], "big", signed=True)))
@@ -478,6 +478,16 @@ class BTreePage:
                 print("\t" * intent + "Type: %d (int) | Value: %d" %
                       (t, int.from_bytes(self.pagebytes[pointer:pointer+8], "big", signed=True)))
                 pointer += 8
+            elif(t == 7):
+                print("\t" * intent + "Type: %d (real) | Value %f" % (t, struct.unpack('>d',self.pagebytes[pointer:pointer+8])[0]))
+                pointer += 8
+            elif(t == 8):
+                print("\t" * intent + "Type: %d (int) | Value: 0" %(t))
+            elif(t == 9):
+                print("\t" * intent + "Type: %d (int) | Value: 1" %(t))
+            elif(t == 10 or t == 11):
+                print("\t" * intent + "Type: %d | %sThis datatype is reserved for internal use and should not appear in regular SQLite databases!%s" % (t, colorred, coloroff))
+                print("\t" * (2+intent) + "%sThe following offsets might be wrong and lead to wrong interpretations%s" % (colorred, coloroff))
             elif(t >= 12 and t % 2 == 0):
                 length = int((t-12)/2)
                 print("\t" * intent + "Type: BLOB    | Value: %s" %
@@ -489,7 +499,7 @@ class BTreePage:
                       self.pagebytes[pointer:pointer+length].decode())
                 pointer += length
             else:
-                print("\t" * intent + "unknown")
+                print("\t" * intent + "unknown: %d | That shouldnt be possible." %t)
 
         return 0
 
